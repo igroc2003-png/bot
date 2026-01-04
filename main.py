@@ -1,40 +1,44 @@
-from maxgram import Bot
+javascript
+// Подключаем модуль для работы с HTTP-запросами
+const express = require('express');
+const bodyParser = require('body-parser');
 
-# Токен вашего бота
-bot = Bot("8304319779:AAF-cF4I5pjhp6otFrnL2oT0Le2fC9oqpbg")
+// Создаем экземпляр Express-приложения
+const app = express();
+app.use(bodyParser.json());
 
-# Установка подсказок для команд бота
-bot.set_my_commands({
-    "help": "Получить помощь",
-    "ping": "Проверка работы бота",
-    "hello": "Приветствие"
-})
+// Обработчик входящего сообщения
+app.post('/webhook', async (req, res) => {
+try {
+const { message } = req.body;
 
-# Обработчик события запуска бота
-@bot.on("bot_started")
-def on_start(context):
-    context.reply("Привет! Скажи что-нибудь и я повторю это!")
+    // Простая логика обработки сообщений
+    if (message.text === '/start') {
+        await sendMessage(message.chat.id, 'Привет! Я простой бот.');
+    } else if (message.text.includes('привет')) {
+        await sendMessage(message.chat.id, 'Здравствуйте!');
+    } else {
+        await sendMessage(message.chat.id, 'Я понял ваше сообщение.');
+    }
 
-# Обработчик для сообщения с текстом 'ping'
-@bot.hears("ping")
-def ping_handler(context):
-    context.reply("pong")
+    res.sendStatus(200); // Успешная обработка
+} catch (err) {
+    console.error(err);
+    res.status(500).send({ error: err.message });
+}
+});
 
-# Обработчик для всех остальных входящих сообщений
-@bot.on("message_created")
-def echo(context):
-    # Проверяем, что есть сообщение и тело сообщения
-    if context.message and context.message.get("body") and "text" in context.message["body"]:
-        # Получаем текст сообщения
-        text = context.message["body"]["text"]
-        
-        # Проверяем, что это не команда и не специальные сообщения с обработчиками
-        if not text.startswith("/") and text != "ping":
-            context.reply(text)
+// Отправляем сообщение пользователю
+async function sendMessage(chatId, text) {
+return new Promise((resolve, reject) => {
+// Здесь должна быть реализация отправки сообщения,
+// соответствующая спецификациям MAX Bot SDK
+resolve(); // Пока просто резольвим пустоту
+});
+}
 
-# Запуск бота
-if __name__ == "__main__":
-    try:
-        bot.run()
-    except KeyboardInterrupt:
-        bot.stop()
+// Запускаем сервер на порте 3000
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+console.log(`Сервер запущен на http://localhost:${PORT}`);
+});
