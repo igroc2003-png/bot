@@ -3,9 +3,9 @@ import requests
 import os
 
 app = Flask(__name__)
-TOKEN = os.getenv("MAX_BOT_TOKEN")
+TOKEN = os.getenv("f9LHodD0cOKVZp7gFirF4PSYvSvITJ-N_iM68WvIJYslb6uURgZkHTfMAxC4a_8CxH0JdE1CnFu9w5qjQEcv")
 
-MAX_API = f"https://api.max.ru/bot{f9LHodD0cOKVZp7gFirF4PSYvSvITJ-N_iM68WvIJYslb6uURgZkHTfMAxC4a_8CxH0JdE1CnFu9w5qjQEcv}"
+MAX_API = f"https://api.max.ru/bot{TOKEN}"
 
 def send_message(chat_id, text):
     requests.post(f"{MAX_API}/sendMessage", json={
