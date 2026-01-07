@@ -1,17 +1,12 @@
-import os
-import logging
-import asyncio
-import json
-import requests
 from flask import Flask, request
+import os
+import requests
 
 app = Flask(__name__)
 
+# Получаем токен из переменной окружения
 TOKEN = os.getenv("MAX_BOT_TOKEN")
 API_URL = f"https://api.max.ru/bot{TOKEN}"
-
-# Логирование (опционально)
-logging.basicConfig(level=logging.INFO)
 
 def send_message(chat_id, text):
     """Отправить сообщение через MAX API"""
@@ -31,10 +26,8 @@ def index():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    """Обработка входящих сообщений"""
+    """Обработка входящих сообщений от MAX"""
     data = request.json
-    logging.info(f"Получены данные: {json.dumps(data, indent=4)}")
-
     if not data:
         return {"ok": True}
 
