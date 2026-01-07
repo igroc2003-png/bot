@@ -1,5 +1,5 @@
 # Основные зависимости для Max Bot
-maxbot==1.0.0
+maxbot==0.3.0b2
 requests==2.31.0
 asyncio==3.4.3
 python-dateutil==2.8.2
