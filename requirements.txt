@@ -1,1 +1,3 @@
-maxbot
+Flask
+requests
+python-dotenv
