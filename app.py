@@ -1,24 +1,11 @@
 from flask import Flask, request
-import os
 import requests
+import os
 
 app = Flask(__name__)
 
-# Получаем токен из переменной окружения
-TOKEN = os.getenv("MAX_BOT_TOKEN")
-API_URL = f"https://api.max.ru/bot{TOKEN}"
-
-def send_message(chat_id, text):
-    """Отправить сообщение через MAX API"""
-    response = requests.post(
-        f"{API_URL}/sendMessage",
-        json={
-            "chat_id": chat_id,
-            "text": text
-        },
-        timeout=5
-    )
-    return response.json()
+MAX_TOKEN = os.environ.get("MAX_TOKEN")
+MAX_API_URL = f"https://botapi.max.ru/bot{MAX_TOKEN}/sendMessage"
 
 @app.route("/", methods=["GET"])
 def index():
@@ -26,28 +13,32 @@ def index():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    """Обработка входящих сообщений от MAX"""
     data = request.json
-    if not data:
-        return {"ok": True}
+    print("WEBHOOK DATA:", data)
 
-    message = data.get("object", {}).get("message")
-    if not message:
-        return {"ok": True}
+    try:
+        chat_id = data["message"]["chat"]["id"]
+        text = data["message"].get("text", "")
 
-    chat_id = message["chat"]["id"]
-    text = message.get("text", "")
+        if text == "/start":
+            send_message(chat_id, "Привет! Я простой MAX-бот 🤖")
+        else:
+            send_message(chat_id, f"Ты написал: {text}")
 
-    if text == "/start":
-        send_message(chat_id, "✅ Бот работает!")
-    else:
-        send_message(chat_id, f"Ты написал: {text}")
+    except Exception as e:
+        print("ERROR:", e)
 
-    return {"ok": True}
+    return {"ok": True}, 200
+
+def send_message(chat_id, text):
+    payload = {
+        "chat_id": chat_id,
+        "text": text
+    }
+    r = requests.post(MAX_API_URL, json=payload)
+    print("SEND STATUS:", r.status_code)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3000))
+    print("🔥 FLASK BOOTED 🔥")
     app.run(host="0.0.0.0", port=port)
-
-print("APP STARTED")
-
