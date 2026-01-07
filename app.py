@@ -3,7 +3,7 @@ import os
 
 TOKEN = os.getenv("MAX_BOT_TOKEN")
 
-bot = MaxBot(token=TOKEN)
+bot = MaxBot(TOKEN)
 
 
 @bot.message()
