@@ -11,7 +11,7 @@ import json
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 import requests
-from maxbot import MaxBot, Message, User, Chat
+# from maxbot import MaxBot, Message, User, Chat
 from maxbot.handlers import CommandHandler, MessageHandler, CallbackHandler
 from maxbot.keyboards import InlineKeyboard, ReplyKeyboard
 from maxbot.filters import Filter
