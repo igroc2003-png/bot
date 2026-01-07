@@ -1,44 +1,91 @@
 from flask import Flask, request
 import requests
 import os
+from openai import OpenAI
+
+# ================== НАСТРОЙКИ ==================
+
+MAX_TOKEN = os.getenv("MAX_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+MAX_API_URL = "https://api.max.ru/bot"
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = Flask(__name__)
 
-MAX_TOKEN = os.environ.get("MAX_TOKEN")
-MAX_API_URL = f"https://botapi.max.ru/bot{MAX_TOKEN}/sendMessage"
+# ================== ФУНКЦИИ ==================
 
-@app.route("/", methods=["GET"])
-def index():
-    return "OK", 200
+def send_message(user_id: int, text: str):
+    """Отправка сообщения пользователю в MAX"""
+    url = f"{MAX_API_URL}/sendMessage"
+    headers = {
+        "Authorization": f"Bearer {MAX_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "user_id": user_id,
+        "text": text
+    }
+    requests.post(url, headers=headers, json=payload, timeout=10)
+
+
+def ask_ai(user_text: str) -> str:
+    """Запрос к OpenAI"""
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "Ты полезный, вежливый и понятный ИИ-ассистент. Отвечай кратко и по делу."
+            },
+            {
+                "role": "user",
+                "content": user_text
+            }
+        ],
+        temperature=0.7
+    )
+    return response.choices[0].message.content
+
+
+# ================== WEBHOOK ==================
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
-    print("WEBHOOK DATA:", data)
+
+    # защита от пустых запросов
+    if not data or "from" not in data:
+        return "ok"
+
+    user_id = data["from"]["id"]
+    text = data.get("text", "").strip()
+
+    if not text:
+        return "ok"
+
+    # команды
+    if text.lower() in ["/start", "старт"]:
+        send_message(
+            user_id,
+            "Привет 👋\nЯ ИИ-ассистент 🤖\n\nЗадай мне любой вопрос."
+        )
+        return "ok"
 
     try:
-        chat_id = data["message"]["chat"]["id"]
-        text = data["message"].get("text", "")
+        answer = ask_ai(text)
+        send_message(user_id, answer)
+    except Exception:
+        send_message(
+            user_id,
+            "⚠️ Произошла ошибка. Попробуй задать вопрос позже."
+        )
 
-        if text == "/start":
-            send_message(chat_id, "Привет! Я простой MAX-бот 🤖")
-        else:
-            send_message(chat_id, f"Ты написал: {text}")
+    return "ok"
 
-    except Exception as e:
-        print("ERROR:", e)
 
-    return {"ok": True}, 200
-
-def send_message(chat_id, text):
-    payload = {
-        "chat_id": chat_id,
-        "text": text
-    }
-    r = requests.post(MAX_API_URL, json=payload)
-    print("SEND STATUS:", r.status_code)
+# ================== ЗАПУСК ==================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 3000))
-    print("🔥 FLASK BOOTED 🔥")
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=3000)
