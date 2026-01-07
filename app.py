@@ -1,18 +1,15 @@
+# ================== НАСТРОЙКИ ==================
 from flask import Flask, request
 import requests
 import os
 from openai import OpenAI
 
-# ================== НАСТРОЙКИ ==================
-
 MAX_TOKEN = os.getenv("MAX_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-MAX_API_URL = "https://api.max.ru/bot"
-
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI()  # ← КЛЮЧ БЕРЁТСЯ ИЗ ENV
 
 app = Flask(__name__)
+
 
 # ================== ФУНКЦИИ ==================
 
