@@ -1,152 +1,57 @@
-#!/usr/bin/env python3
-"""
-Полнофункциональный бот для Max Messenger
-Интеграция с платформой Bothost для профессионального хостинга
-"""
-
 import os
 import logging
 import asyncio
 import json
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
 import requests
-# from maxbot import MaxBot, Message, User, Chat
-# from maxbot.handlers import CommandHandler, MessageHandler, CallbackHandler
-# from maxbot.keyboards import InlineKeyboard, ReplyKeyboard
-# from maxbot.filters import Filter
+from flask import Flask, request
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+app = Flask(__name__)
 
-# Получение токена бота из переменных окружения
-BOT_TOKEN = os.getenv('BOT_TOKEN')
-if not BOT_TOKEN:
-    logger.error("BOT_TOKEN не установлен!")
-    exit(1)
+TOKEN = os.getenv("MAX_BOT_TOKEN")
+API_URL = f"https://api.max.ru/bot{TOKEN}"
 
-# URL для API авторизации Bothost
-AUTH_API_URL = os.getenv('AUTH_API_URL', 'https://bothost.ru/api/auth.php')
+# Логирование (опционально)
+logging.basicConfig(level=logging.INFO)
 
-# Получаем ID бота из переменных окружения (устанавливается агентом)
-BOT_ID = os.getenv('BOT_ID', 'demo_max_bot')
+def send_message(chat_id, text):
+    """Отправить сообщение через MAX API"""
+    response = requests.post(
+        f"{API_URL}/sendMessage",
+        json={
+            "chat_id": chat_id,
+            "text": text
+        },
+        timeout=5
+    )
+    return response.json()
 
-# Создаем экземпляр бота
-bot = MaxBot(BOT_TOKEN)
+@app.route("/", methods=["GET"])
+def index():
+    return "OK", 200
 
-class MaxBotManager:
-    """Менеджер для бота Max с расширенным функционалом"""
-    
-    def __init__(self, bot_id: str, auth_api_url: str):
-        self.bot_id = bot_id
-        self.auth_api_url = auth_api_url
-        self.user_sessions = {}  # Сессии пользователей
-        self.user_data = {}      # Данные пользователей
-        self.stats = {           # Статистика бота
-            'total_users': 0,
-            'total_messages': 0,
-            'start_time': datetime.now()
-        }
-    
-    def get_user_session(self, user_id: str) -> Dict[str, Any]:
-        """Получить или создать сессию пользователя"""
-        if user_id not in self.user_sessions:
-            self.user_sessions[user_id] = {
-                'state': 'idle',
-                'data': {},
-                'last_activity': datetime.now(),
-                'message_count': 0
-            }
-        return self.user_sessions[user_id]
-    
-    def update_user_session(self, user_id: str, kwargs):
-        """Обновить сессию пользователя"""
-        session = self.get_user_session(user_id)
-        session.update(kwargs)
-        session['last_activity'] = datetime.now()
-        session['message_count'] += 1
-    
-    def get_user_data(self, user_id: str) -> Dict[str, Any]:
-        """Получить данные пользователя"""
-        if user_id not in self.user_data:
-            self.user_data[user_id] = {
-                'user_id': user_id,
-                'first_seen': datetime.now(),
-                'total_messages': 0,
-                'preferences': {
-                    'language': 'ru',
-                    'notifications': True,
-                    'theme': 'light'
-                },
-                'subscription': {
-                    'plan': 'free',
-                    'expires_at': None,
-                    'features': ['basic_messaging']
-                }
-            }
-        return self.user_data[user_id]
-    
-    def update_user_data(self, user_id: str, kwargs):
-        """Обновить данные пользователя"""
-        user_data = self.get_user_data(user_id)
-        user_data.update(kwargs)
-    
-    def get_bot_stats(self) -> Dict[str, Any]:
-        """Получить статистику бота"""
-        uptime = datetime.now() - self.stats['start_time']
-        return {
-            'uptime': str(uptime).split('.')[0],
-            'total_users': len(self.user_data),
-            'active_users': len([s for s in self.user_sessions.values() 
-                               if (datetime.now() - s['last_activity']).seconds < 3600]),
-            'total_messages': sum(s['message_count'] for s in self.user_sessions.values()),
-            'memory_usage': f"{len(str(self.user_data)) + len(str(self.user_sessions))} bytes"
-        }
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    """Обработка входящих сообщений"""
+    data = request.json
+    logging.info(f"Получены данные: {json.dumps(data, indent=4)}")
 
-# Создаем менеджер бота
-bot_manager = MaxBotManager(BOT_ID, AUTH_API_URL)
+    if not data:
+        return {"ok": True}
 
-# Обработчик команды /start
-@bot.command_handler('/start')
-async def start_command(message: Message):
-    """Обработчик команды /start"""
-    user = message.from_user
-    user_id = str(user.id)
-    
-    # Обновляем данные пользователя
-    bot_manager.update_user_session(user_id, state='idle')
-    bot_manager.update_user_data(user_id, 
-                               username=user.username,
-                               first_name=user.first_name,
-                               last_name=user.last_name)
-    
-    welcome_text = f"""🤖 Добро пожаловать в Max Bot!
+    message = data.get("object", {}).get("message")
+    if not message:
+        return {"ok": True}
 
-👋 Привет, {user.first_name}!
+    chat_id = message["chat"]["id"]
+    text = message.get("text", "")
 
-Этот бот создан специально для мессенджера Max и демонстрирует 
-возможности интеграции с платформой Bothost.
+    if text == "/start":
+        send_message(chat_id, "✅ Бот работает!")
+    else:
+        send_message(chat_id, f"Ты написал: {text}")
 
-🎯 Основные функции:
-• 📊 Статистика и аналитика
-• ⚙️ Настройки пользователя
-• 🎮 Мини-игры и развлечения
-• 📚 Справочная информация
-• 🔧 Административные функции
+    return {"ok": True}
 
-🆔 Ваш ID: {user.id}
-👤 Username: @{user.username or 'не указан'}
-📅 Дата регистрации: {datetime.now().strftime('%d.%m.%Y %H:%M')}
-
-Выберите действие из меню ниже:"""
-    
-    await message.reply(text=welcome_text)
-
-# Запуск бота
 if __name__ == "__main__":
-    logger.info(f"Запуск Max Bot {BOT_ID}...")
-    bot.run()
+    port = int(os.environ.get("PORT", 3000))
+    app.run(host="0.0.0.0", port=port)
