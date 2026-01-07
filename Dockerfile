@@ -57,4 +57,4 @@ ENV BOT_ID=""
 ENV AUTH_API_URL="https://bothost.ru/api/auth.php"
 
 # Команда запуска
-CMD ["python", "max-bot-example.py"]
+CMD ["python", "app.py"]
